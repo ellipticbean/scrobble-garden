@@ -25,9 +25,13 @@ export default function ForestBeacon({
   const trackName = latest?.name ?? 'Quiet Forest';
 
   useEffect(() => {
-    setPulse(true);
-    const t = setTimeout(() => setPulse(false), 1000);
-    return () => clearTimeout(t);
+    const frame = window.requestAnimationFrame(() => setPulse(true));
+    const t = window.setTimeout(() => setPulse(false), 1000);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(t);
+    };
   }, [latest]);
 
   return (

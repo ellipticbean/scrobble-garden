@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
+import { useState, type CSSProperties, type FormEvent } from 'react';
 import './App.css';
 import FloraSprite from './components/FloraSprite';
 import CrossPollinationModal from './components/CrossPollinationModal';
@@ -27,40 +27,37 @@ import {
   type MemoryComparison,
 } from './lib/gardenStorage';
 
-
 export default function App() {
-
   const [usernameInput, setUsernameInput] = useState('');
-  const [activeUsername, setActiveUsername] = useState('MintyCorpse');
+  const [activeUsername, setActiveUsername] = useState('');
   const [selectedPeriod, setSelectedPeriod] =
     useState<LastFmGardenPeriod>('overall');
   const [isDemo, setIsDemo] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [privacyOpen, setPrivacyOpen] = useState(false);
-  const [plants, setPlants] = useState<GardenPlant[]>(demoGardenPlants);
+
+  const [plants, setPlants] = useState<GardenPlant[]>([]);
   const [undergroundSpores, setUndergroundSpores] = useState<
     UndergroundSpore[]
   >([]);
   const [milestones, setMilestones] = useState<GardenMilestone[]>([]);
-  const [recentScrobbles, setRecentScrobbles] =
-    useState<RecentScrobble[]>(demoRecentScrobbles);
-  const [insights, setInsights] = useState<string[]>(demoInsights);
+  const [recentScrobbles, setRecentScrobbles] = useState<RecentScrobble[]>([]);
+  const [insights, setInsights] = useState<string[]>([]);
   const [weather, setWeather] = useState('🌙 Bioluminescent Mist');
   const [memoryReport, setMemoryReport] = useState<MemoryComparison | null>(
     null
   );
   const [lastRefreshed, setLastRefreshed] = useState<string>('Just now');
 
-  const [selectedPlant, setSelectedPlant] = useState<GardenPlant>(
-    demoGardenPlants[0]
-  );
+  const [selectedPlant, setSelectedPlant] = useState<GardenPlant | null>(null);
   const [biomeFilter, setBiomeFilter] = useState<string>('ALL');
   const [vaultOpen, setVaultOpen] = useState(false);
   const [pollinationOpen, setPollinationOpen] = useState(false);
   const [pythonLog, setPythonLog] = useState<PythonSyncResponse | null>(null);
   const [pythonLoading, setPythonLoading] = useState(false);
   const [pythonError, setPythonError] = useState('');
+
   async function handleRunPythonSync() {
     if (isDemo) {
       setPythonError('Switch to a real Last.fm username to run Python automation.');
@@ -89,6 +86,7 @@ export default function App() {
       setPythonLoading(false);
     }
   }
+
   async function loadUserGarden(
     targetUser: string,
     period: LastFmGardenPeriod = selectedPeriod
@@ -120,7 +118,7 @@ export default function App() {
       setInsights(generated.insights);
       setWeather(generated.weather);
       setMemoryReport(memory);
-      setSelectedPlant(generated.plants[0]);
+      setSelectedPlant(generated.plants[0] ?? null);
       setBiomeFilter('ALL');
       setActiveUsername(data.username);
       setSelectedPeriod(period);
@@ -151,7 +149,7 @@ export default function App() {
     setInsights(demoInsights);
     setWeather('🌙 Bioluminescent Mist');
     setMemoryReport(null);
-    setSelectedPlant(demoGardenPlants[0]);
+    setSelectedPlant(demoGardenPlants[0] ?? null);
     setBiomeFilter('ALL');
     setActiveUsername('MintyCorpse');
     setIsDemo(true);
@@ -161,11 +159,13 @@ export default function App() {
     e.preventDefault();
     void loadUserGarden(usernameInput, selectedPeriod);
   }
+
   function handleTuneAntenna() {
     if (!isDemo) {
       void loadUserGarden(activeUsername, selectedPeriod);
     }
   }
+
   function handlePeriodChange(newPeriod: LastFmGardenPeriod) {
     if (isDemo) {
       setSelectedPeriod(newPeriod);
@@ -173,12 +173,6 @@ export default function App() {
     }
     void loadUserGarden(activeUsername, newPeriod);
   }
-
-  useEffect(() => {
-    if (import.meta.env.VITE_LASTFM_API_KEY) {
-      void loadUserGarden('MintyCorpse', 'overall');
-    }
-  }, []);
 
   const biomes = [
     'ALL',
@@ -208,11 +202,22 @@ export default function App() {
               ? '🌱 Scrobble Garden • Sample Prototype Mode'
               : `🌿 Scrobble Garden • Connected to Last.fm • Watered ${lastRefreshed}`}
           </span>
-          <h1>{activeUsername}’s Living Music Forest</h1>
+          <h1>
+            {activeUsername ? `${activeUsername}’s` : 'Empty'} Living Music Forest
+          </h1>
           <p>
             Every scrobble nourishes your ecosystem. Artists grow from spores
             into ancient forest spirits.
           </p>
+
+          <a
+            className="scrobble-world-link"
+            href="https://ellipticbean.github.io/scrobble-world/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            🌍 Visit the Community Atlas ↗
+          </a>
 
           <form className="explorer-form" onSubmit={handleFormSubmit}>
             <input
@@ -230,7 +235,7 @@ export default function App() {
               type="button"
               className="pollinate-btn"
               onClick={() => setPollinationOpen(true)}
-              disabled={loading}
+              disabled={loading || !activeUsername}
             >
               🦋 Cross-Pollinate (Compare Friend)
             </button>
@@ -288,6 +293,7 @@ export default function App() {
           </div>
         </div>
       </header>
+
       <ForestBeacon
         isDemo={isDemo}
         recentTracks={recentScrobbles.map((r) => ({
@@ -297,6 +303,7 @@ export default function App() {
         onRefresh={handleTuneAntenna}
         loading={loading}
       />
+
       {!isDemo && memoryReport && (
         <section className="memory-banner" aria-live="polite">
           <div className="memory-banner-left">
@@ -334,74 +341,85 @@ export default function App() {
               <div>
                 <h2>The Sanctuary Clearing</h2>
                 <p>
-                  Select a plant specimen to inspect its musical roots and
-                  growth stage.
+                  {plants.length > 0
+                    ? 'Select a plant specimen to inspect its musical roots and growth stage.'
+                    : 'Your forest is waiting for a Last.fm username to awaken.'}
                 </p>
               </div>
 
-              <div className="filter-pills">
-                {biomes.map((biome) => (
-                  <button
-                    key={biome}
-                    type="button"
-                    className={`filter-btn ${biomeFilter === biome ? 'active' : ''
-                      }`}
-                    onClick={() => setBiomeFilter(biome)}
-                  >
-                    {biome === 'ALL' ? '🌲 All Biomes' : biome}
-                  </button>
-                ))}
+              {plants.length > 0 && (
+                <div className="filter-pills">
+                  {biomes.map((biome) => (
+                    <button
+                      key={biome}
+                      type="button"
+                      className={`filter-btn ${biomeFilter === biome ? 'active' : ''
+                        }`}
+                      onClick={() => setBiomeFilter(biome)}
+                    >
+                      {biome === 'ALL' ? '🌲 All Biomes' : biome}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {plants.length === 0 ? (
+              <div className="empty-clearing-state" style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-secondary)' }}>
+                <p style={{ fontSize: '2.5rem', margin: '0 0 10px' }}>🌱</p>
+                <h3 style={{ color: '#fff', margin: '0 0 6px' }}>Your clearing is dormant...</h3>
+                <p style={{ fontSize: '0.9rem', margin: 0 }}>Type any public Last.fm username above and click <strong>Grow Garden</strong> to sprout your first plants!</p>
               </div>
-            </div>
+            ) : (
+              <div className="Terrarium-grid">
+                {visiblePlants.map((plant) => {
+                  const progressPercent = Math.min(
+                    100,
+                    Math.round((plant.scrobbles / plant.nextLevelScrobbles) * 100)
+                  );
 
-            <div className="Terrarium-grid">
-              {visiblePlants.map((plant) => {
-                const progressPercent = Math.min(
-                  100,
-                  Math.round((plant.scrobbles / plant.nextLevelScrobbles) * 100)
-                );
+                  return (
+                    <button
+                      key={plant.id}
+                      type="button"
+                      className={`plant-card ${selectedPlant?.id === plant.id ? 'selected' : ''
+                        }`}
+                      style={
+                        {
+                          '--plant-accent': plant.accentColor,
+                        } as CSSProperties
+                      }
+                      onClick={() => setSelectedPlant(plant)}
+                    >
+                      <span className="plant-level-tag">Lv. {plant.level}</span>
 
-                return (
-                  <button
-                    key={plant.id}
-                    type="button"
-                    className={`plant-card ${selectedPlant.id === plant.id ? 'selected' : ''
-                      }`}
-                    style={
-                      {
-                        '--plant-accent': plant.accentColor,
-                      } as CSSProperties
-                    }
-                    onClick={() => setSelectedPlant(plant)}
-                  >
-                    <span className="plant-level-tag">Lv. {plant.level}</span>
-
-                    <FloraSprite
-                      species={plant.species}
-                      accentColor={plant.accentColor}
-                      level={plant.level}
-                    />
-
-                    <h3 className="plant-artist-name">{plant.artistName}</h3>
-                    <span className="plant-species-name">
-                      {plant.speciesLabel}
-                    </span>
-
-                    <div className="xp-bar-track" aria-hidden="true">
-                      <div
-                        className="xp-bar-fill"
-                        style={{ width: `${progressPercent}%` }}
+                      <FloraSprite
+                        species={plant.species}
+                        accentColor={plant.accentColor}
+                        level={plant.level}
                       />
-                    </div>
 
-                    <span className="plant-scrobble-meta">
-                      {plant.scrobbles.toLocaleString()} /{' '}
-                      {plant.nextLevelScrobbles.toLocaleString()} XP
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                      <h3 className="plant-artist-name">{plant.artistName}</h3>
+                      <span className="plant-species-name">
+                        {plant.speciesLabel}
+                      </span>
+
+                      <div className="xp-bar-track" aria-hidden="true">
+                        <div
+                          className="xp-bar-fill"
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                      </div>
+
+                      <span className="plant-scrobble-meta">
+                        {plant.scrobbles.toLocaleString()} /{' '}
+                        {plant.nextLevelScrobbles.toLocaleString()} XP
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </section>
 
           {/* Underground Spore Vault (Deep-Cut Artists #13–#36) */}
@@ -461,18 +479,27 @@ export default function App() {
               )}
             </section>
           )}
-          <section className="python-automation-panel" aria-label="Python Automation Hub">
+
+          <section
+            className="python-automation-panel"
+            aria-label="Python Automation Hub"
+          >
             <div className="python-panel-header">
               <div>
-                <span className="panel-eyebrow">🐍 Full-Stack Python Automation Engine</span>
+                <span className="panel-eyebrow">
+                  🐍 Full-Stack Python Automation Engine
+                </span>
                 <h3>FastAPI & SQLite Sync Log</h3>
-                <p>Trigger background intelligence processing on your local Python server.</p>
+                <p>
+                  Trigger background intelligence processing on your local Python
+                  server.
+                </p>
               </div>
               <button
                 type="button"
                 className="python-sync-btn"
                 onClick={() => void handleRunPythonSync()}
-                disabled={pythonLoading || isDemo}
+                disabled={pythonLoading || isDemo || !activeUsername}
               >
                 {pythonLoading ? '⚡ Logging to SQLite...' : '🐍 Run Python Sync'}
               </button>
@@ -483,9 +510,17 @@ export default function App() {
             {pythonLog && (
               <div className="python-log-results">
                 <div className="python-log-meta">
-                  <span>Status: <strong>Success</strong></span>
-                  <span>Total XP Logged: <strong>{pythonLog.calculated_xp.toLocaleString()}</strong></span>
-                  <span>Primary Spore: <strong>{pythonLog.current_top_artist}</strong></span>
+                  <span>
+                    Status: <strong>Success</strong>
+                  </span>
+                  <span>
+                    Total XP Logged:{' '}
+                    <strong>{pythonLog.calculated_xp.toLocaleString()}</strong>
+                  </span>
+                  <span>
+                    Primary Spore:{' '}
+                    <strong>{pythonLog.current_top_artist}</strong>
+                  </span>
                 </div>
                 <p className="python-note">{pythonLog.automation_note}</p>
                 <div className="sync-history-table">
@@ -493,7 +528,9 @@ export default function App() {
                   <ul>
                     {pythonLog.sync_history.map((h, i) => (
                       <li key={i}>
-                        <span>{h.synced_at}</span> • Top: <strong>{h.top_artist}</strong> ({h.total_xp.toLocaleString()} XP)
+                        <span>{h.synced_at}</span> • Top:{' '}
+                        <strong>{h.top_artist}</strong> ({h.total_xp.toLocaleString()}{' '}
+                        XP)
                       </li>
                     ))}
                   </ul>
@@ -501,17 +538,24 @@ export default function App() {
               </div>
             )}
           </section>
+
           <section
             className="intelligence-panel"
             aria-label="Forest Intelligence"
           >
             <h3>🔮 Forest Intelligence & Pattern Observations</h3>
             <ul className="insight-list">
-              {insights.map((insight, index) => (
-                <li key={index} className="insight-item">
-                  {insight}
+              {insights.length === 0 ? (
+                <li className="insight-item">
+                  🌱 Grow your garden above to unlock intelligent forest observations and pattern analysis.
                 </li>
-              ))}
+              ) : (
+                insights.map((insight, index) => (
+                  <li key={index} className="insight-item">
+                    {insight}
+                  </li>
+                ))
+              )}
             </ul>
           </section>
         </div>
@@ -521,35 +565,56 @@ export default function App() {
             <span className="panel-eyebrow">
               🔬 Botanical Specimen Inspector
             </span>
-            <h3>{selectedPlant.artistName}</h3>
-            <p className="inspector-subtitle">
-              {selectedPlant.speciesLabel} • {selectedPlant.stage}
-            </p>
+            {selectedPlant ? (
+              <>
+                <h3>{selectedPlant.artistName}</h3>
+                <p className="inspector-subtitle">
+                  {selectedPlant.speciesLabel} • {selectedPlant.stage}
+                </p>
 
-            <div className="inspector-note">{selectedPlant.botanicalNote}</div>
+                <div className="inspector-note">
+                  {selectedPlant.botanicalNote}
+                </div>
 
-            <div className="inspector-stats">
-              <div className="stat-box">
-                <span>Biome</span>
-                <strong>{selectedPlant.genreBiome}</strong>
+                <div className="inspector-stats">
+                  <div className="stat-box">
+                    <span>Biome</span>
+                    <strong>{selectedPlant.genreBiome}</strong>
+                  </div>
+                  <div className="stat-box">
+                    <span>Growth Level</span>
+                    <strong>Level {selectedPlant.level}</strong>
+                  </div>
+                  <div className="stat-box">
+                    <span>Total Scrobbles</span>
+                    <strong>{selectedPlant.scrobbles.toLocaleString()}</strong>
+                  </div>
+                  <div className="stat-box">
+                    <span>Recent Growth</span>
+                    <strong>{selectedPlant.recentGrowth}</strong>
+                  </div>
+                  <div className="stat-box" style={{ gridColumn: '1 / -1' }}>
+                    <span>Signature Nutrient (Recent / Rank)</span>
+                    <strong>♪ {selectedPlant.topTrack}</strong>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div
+                className="inspector-empty"
+                style={{
+                  textAlign: 'center',
+                  padding: '40px 10px',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <p style={{ fontSize: '2rem', margin: '0 0 8px' }}>🌿</p>
+                <p style={{ margin: 0, fontSize: '0.85rem' }}>
+                  No specimen selected. Grow a garden and click a plant to inspect
+                  its roots.
+                </p>
               </div>
-              <div className="stat-box">
-                <span>Growth Level</span>
-                <strong>Level {selectedPlant.level}</strong>
-              </div>
-              <div className="stat-box">
-                <span>Total Scrobbles</span>
-                <strong>{selectedPlant.scrobbles.toLocaleString()}</strong>
-              </div>
-              <div className="stat-box">
-                <span>Recent Growth</span>
-                <strong>{selectedPlant.recentGrowth}</strong>
-              </div>
-              <div className="stat-box" style={{ gridColumn: '1 / -1' }}>
-                <span>Signature Nutrient (Recent / Rank)</span>
-                <strong>♪ {selectedPlant.topTrack}</strong>
-              </div>
-            </div>
+            )}
           </section>
 
           {milestones.length > 0 && (
@@ -582,23 +647,29 @@ export default function App() {
               ⚡ Command Center • Live Nutrient Feed
             </span>
             <div className="activity-list">
-              {recentScrobbles.map((item) => (
-                <div key={item.id} className="activity-row">
-                  <div className="activity-row-top">
-                    <strong>
-                      {item.artist} — {item.track}
-                    </strong>
-                    <span>{item.timeAgo}</span>
+              {recentScrobbles.length === 0 ? (
+                <p className="muted-note" style={{ fontSize: '0.82rem', padding: '10px 0' }}>
+                  Awaiting recent scrobble feed...
+                </p>
+              ) : (
+                recentScrobbles.map((item) => (
+                  <div key={item.id} className="activity-row">
+                    <div className="activity-row-top">
+                      <strong>
+                        {item.artist} — {item.track}
+                      </strong>
+                      <span>{item.timeAgo}</span>
+                    </div>
+                    <p className="activity-effect">{item.effect}</p>
                   </div>
-                  <p className="activity-effect">{item.effect}</p>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </section>
         </aside>
       </main>
 
-      {pollinationOpen && (
+      {pollinationOpen && activeUsername && (
         <CrossPollinationModal
           hostUsername={activeUsername}
           hostPlants={plants}
@@ -606,6 +677,7 @@ export default function App() {
           onClose={() => setPollinationOpen(false)}
         />
       )}
+
       <footer className="site-legal-footer">
         <p>
           <a
@@ -615,8 +687,8 @@ export default function App() {
           >
             Powered by Last.fm ↗
           </a>{' '}
-          • Public listening data used with permission. Scrobble Garden is an independent,
-          unofficial fan project and is not endorsed by Last.fm[cite: 64].
+          • Public listening data used with permission. Scrobble Garden is an
+          independent, unofficial fan project and is not endorsed by Last.fm[cite: 64].
         </p>
         <p>
           <button
